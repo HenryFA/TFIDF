@@ -1,0 +1,162 @@
+#Pedro Henrique Faria Amadeu
+
+from bs4 import BeautifulSoup
+import requests
+import string
+import numpy
+
+
+'''
+1. Sua tarefa será gerar a matriz termo-documento usando TF-IDF por meio da aplicação das 
+fórmulas  TF-IDF  na  matriz  termo-documento  criada  com  a  utilização  do  algoritmo  Bag of 
+Words. Sobre o Corpus que recuperamos anteriormente. O entregável desta tarefa é uma 
+matriz termo-documento onde a primeira linha são os termos e as linhas subsequentes são 
+os vetores calculados com o TF-IDF. 
+2. Sua tarefa será gerar uma matriz de distância, computando o cosseno do ângulo entre todos 
+os vetores que encontramos usando o tf-idf. Para isso use a seguinte fórmula para o cálculo 
+do  cosseno  use  a  fórmula  apresentada  em  Word2Vector  (frankalcantara.com) 
+(https://frankalcantara.com/Aulas/Nlp/out/Aula4.html#/0/4/2)  e  apresentada  na  figura  a 
+seguir:O resultado deste trabalho será uma matriz que relaciona cada um dos vetores já calculados 
+com todos os outros vetores disponíveis na matriz termo-documento mostrando a distância 
+entre cada um destes vetores.
+'''
+
+
+text = []
+textlist = []
+
+# Recebe e armazena os textos dos sites escolhidos separando por palavras
+url1 = 'https://en.wikipedia.org/wiki/Natural_language_processing'
+
+html1 = requests.get(url1)
+site1 = BeautifulSoup(html1.content, 'html.parser')
+pegarconteudos1 = site1.find_all("p")
+
+url2 = 'https://www.ibm.com/cloud/learn/natural-language-processing'
+
+html2 = requests.get(url2)
+site2 = BeautifulSoup(html2.content, 'html.parser')
+pegarconteudos2 = site2.find_all("p")
+
+url3 = 'https://www.techtarget.com/searchenterpriseai/definition/natural-language-processing-NLP'
+
+html3 = requests.get(url3)
+site3 = BeautifulSoup(html3.content, 'html.parser')
+pegarconteudos3 = site3.find_all("p")
+
+url4 = 'https://www.coursera.org/specializations/natural-language-processing'
+
+html4 = requests.get(url4)
+site4 = BeautifulSoup(html4.content, 'html.parser')
+pegarconteudos4 = site4.find_all("p")
+
+url5 = 'https://www.datarobot.com/blog/what-is-natural-language-processing-introduction-to-nlp/'
+
+html5 = requests.get(url5)
+site5 = BeautifulSoup(html5.content, 'html.parser')
+pegarconteudos5 = site5.find_all("p")
+
+# Junta os textos dos sites em uma lista
+for url1 in pegarconteudos1:
+    text.append(url1.get_text())
+
+for url2 in pegarconteudos2:
+    text.append(url2.get_text())
+
+for url3 in pegarconteudos3:
+    text.append(url3.get_text())
+
+for url4 in pegarconteudos4:
+    text.append(url4.get_text())
+
+for url5 in pegarconteudos5:
+    text.append(url5.get_text())
+textlist.append(text)
+
+# Mostra a lista
+print(textlist)
+
+# Bag of Words
+# Separa a lista em sentenças e armazena elas em um array e conta as paavras dentro dessas sentenças
+words = []
+countsentence = 0
+for text in textlist:
+
+    for sentence in text:
+        countsentence += 1
+
+        for word in sentence.split(' '):
+            if word not in words:
+                words.append(word)
+Bag = numpy.zeros((countsentence, len(words)))
+countsentence = 0
+
+for text in textlist:
+
+    for sentence in text:
+
+        for word in sentence.split(' '):
+            Bag[countsentence][words.index(word)] += 1
+        countsentence += 1
+
+# TF
+# Cria matriz de zeros com parametro sentence e words e calcula a frequencia dos termos
+countsentence = 0
+TF = numpy.zeros((len(Bag), len(Bag[0])))
+for text in textlist:
+
+    for sentence in text:
+        numerodewords = len(sentence.split(' '))
+
+        for word in sentence.split(' '):
+            TF[countsentence][words.index(word)] = Bag[countsentence][words.index(word)] / numerodewords
+        countsentence += 1
+
+# mostra TF
+print('#################### TF ####################')
+print(TF)
+
+# IDF
+# Cria matriz de zeros com parametro sentence e words e calcula a frequencia inversa dos termos
+print('#################### IDF ####################')
+IDF = []
+for word in range(len(words)):
+    wordscheck = 0
+
+    for sentencecheck in Bag:
+        if sentencecheck[word] > 0: wordscheck += 1
+    IDF.append(numpy.log10(len(Bag) / wordscheck))
+
+    # mostra IDF
+
+    print(IDF)
+
+# TFIDF
+# cria uma matriz de zeros que usa como parametros sentence e words
+# calcula o TFIDF com a junção do TF e do IDF
+
+TFIDF = numpy.zeros((len(Bag), len(Bag[0])))
+for a in range(len(TFIDF)):
+    for b in range(len(TFIDF[0])):
+        TFIDF[a][b] = TF[a][b] * IDF[b]
+
+# mostra o TFIDF
+print('#################### TF-IDF ####################')
+print(TFIDF)
+
+# Matriz de Distancia
+mdTFIDF = numpy.zeros((len(TFIDF), len(TFIDF)))  # cria uma matriz de zeros com o numero de sentence e o numero de words
+md = 0
+for vector in TFIDF:  # pega o conteudo da lista text
+    a = md
+
+    while a < len(TFIDF):
+        distancia = numpy.dot(vector, TFIDF[a]) / (numpy.linalg.norm(vector) * numpy.linalg.norm(TFIDF[a]))
+        mdTFIDF[md][a] = distancia
+        mdTFIDF[a][md] = distancia
+        md += 1
+        a += 1
+
+    # mostra a matriz de distancia
+print('#################### MATRIZ DE DISTANCIA ####################')
+print(mdTFIDF)
